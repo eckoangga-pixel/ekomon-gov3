@@ -6,8 +6,8 @@
 - Musuh bergerak maju dan menembakkan proyektil ke Pikachu.
 - 3 nyawa; terkena serangan mengurangi nyawa. Nyawa habis = kalah.
 - 2 musuh (mudah), 3 musuh (sedang), 4 musuh (sulit) sebagai target aktif.
-- **SETIAP kali pemain menekan TEMBAK atau mengetuk arena untuk menembak, 1 soal langsung muncul.** Setelah soal dijawab, barulah listrik ditembakkan ke sasaran. Jawaban benar memberi +100 skor dan damage penuh; jawaban salah tetap menembak dengan damage lebih kecil.
-- 10 soal / 10 kesempatan menembak setiap misi.
+- **Pikachu menembak terlebih dahulu. Jika tembakan mengenai musuh, barulah soal muncul.** Pemain mendapat jeda untuk menjawab. Jawaban benar memberi +100 poin dan membuka tembakan berikutnya. Jika salah, poin berkurang 25 dan soal tetap dapat dicoba sampai benar. Tembakan berikutnya hanya bisa dilakukan setelah jawaban benar.
+- 10 soal setiap misi; soal muncul setelah tembakan mengenai musuh.
 - Kelas 1–6, 10 mapel: PAI, Matematika, Bahasa Indonesia, Pendidikan Pancasila, IPAS, Bahasa Jawa, Bahasa Inggris, PJOK, Koding, Seni Rupa.
 - Solo, Duo, Squad (versi saat ini merupakan mode kerja sama bergiliran pada satu perangkat).
 - Pause, kembali ke menu, reward bintang, skor.
@@ -26,7 +26,7 @@ HP/tablet/papan interaktif:
 - Swipe kiri/kanan pada arena = menghindar.
 - TEMBAK = listrik.
 - LOMPAT = melompat.
-- Ketuk arena = memulai satu soal tembakan; setelah menjawab, Pikachu menembak.
+- Ketuk arena = menembak. Jika tembakan mengenai musuh, soal muncul. Jawaban benar membuka tembakan berikutnya.
 
 Laptop:
 - A/D atau panah kiri/kanan = gerak.

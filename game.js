@@ -95,8 +95,9 @@ function sparkLine(){
   const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:0xffee3d}));scene.add(l);bolts.push({mesh:l,life:.16});beep("shoot");
 }
 function fireAtTarget(){
-  // SETIAP tombol/ketukan TEMBAK membuka 1 soal terlebih dahulu.
-  // Kerusakan musuh baru diproses setelah soal dijawab.
+  // Pola permainan baru: PIKACHU MENEMBAK DULU.
+  // Jika tembakan mengenai sasaran, soal langsung muncul.
+  // Pemain harus menjawab benar untuk membuka tembakan berikutnya.
   if(!running||paused||awaitingAnswer||performance.now()-lastShot<330)return;
   lastShot=performance.now();
 
@@ -104,11 +105,24 @@ function fireAtTarget(){
     .filter(e=>e.position.z<hero.position.z&&e.position.z>-32)
     .sort((a,b)=>Math.abs(a.position.x-hero.position.x)-Math.abs(b.position.x-hero.position.x))[0];
 
-  // Simpan sasaran pada saat tombol tembak ditekan.
-  window.pendingShotTarget =
-    target && Math.abs(target.position.x-hero.position.x)<3.0 ? target : null;
+  const hitTarget=target && Math.abs(target.position.x-hero.position.x)<3.0 ? target : null;
+  sparkLine();
 
-  showQuiz();
+  if(hitTarget){
+    // Tembakan terjadi SEBELUM soal.
+    hitTarget.userData.hp--;
+    score+=15;
+    if(hitTarget.userData.hp<=0){
+      scene.remove(hitTarget);
+      enemies=enemies.filter(e=>e!==hitTarget);
+      kills++;
+      score+=30;
+    }
+    $("score").textContent=score;
+
+    // Jeda untuk menjawab soal setelah tembakan mengenai musuh.
+    showQuiz();
+  }
 }
 function jump(){if(!running||paused)return;targetY=2.5;beep("jump");setTimeout(()=>targetY=.85,650)}
 function hurt(){
@@ -141,75 +155,56 @@ function loop(){
 }
 function showQuiz(){
   if(questionIndex>=10){endMission(true);return}
-  awaitingAnswer=true;$("preAttack").classList.add("hidden");$("quiz").classList.remove("hidden");
-  const q=questions[questionIndex];$("quizSubject").textContent=subjectName[subject].toUpperCase();$("quizNo").textContent=`SOAL ${questionIndex+1}/10`;$("question").textContent=q.text;$("feedback").textContent="";
+  awaitingAnswer=true;
+  $("preAttack").classList.add("hidden");
+  $("quiz").classList.remove("hidden");
+  const q=questions[questionIndex];
+  $("quizSubject").textContent=subjectName[subject].toUpperCase();
+  $("quizNo").textContent=`SOAL ${questionIndex+1}/10`;
+  $("question").textContent=q.text;
+  $("feedback").textContent="Jawab dengan teliti. Setelah BENAR, Pikachu dapat menembak lagi.";
   const box=$("answers");box.innerHTML="";
-  q.options.forEach((opt,i)=>{const b=document.createElement("button");b.className="answer";b.textContent=`${String.fromCharCode(65+i)}. ${opt}`;b.onclick=()=>answer(i,b);box.appendChild(b)});
+  q.options.forEach((opt,i)=>{
+    const b=document.createElement("button");
+    b.className="answer";
+    b.textContent=`${String.fromCharCode(65+i)}. ${opt}`;
+    b.onclick=()=>answer(i,b);
+    box.appendChild(b)
+  });
 }
 function answer(i,button){
   if(!awaitingAnswer)return;
-  awaitingAnswer=false;
-
   const q=questions[questionIndex];
   const buttons=[...$("answers").children];
-  buttons.forEach((b,j)=>{
-    b.disabled=true;
-    if(j===q.correct)b.classList.add("correct");
-  });
 
-  const correct=i===q.correct;
-  if(correct){
-    score+=100;
+  if(i===q.correct){
+    awaitingAnswer=false;
+    buttons.forEach((b,j)=>{b.disabled=true;if(j===q.correct)b.classList.add("correct")});
     button.classList.add("correct");
-    $("feedback").textContent="Benar! Pikachu menembakkan listrik! +100 ⚡";
+    score+=100;
+    $("score").textContent=score;
+    $("feedback").textContent="BENAR! ⚡ Pikachu siap menembak lagi! +100 poin";
     beep("correct");
+    questionIndex++;
+    $("qCount").textContent=`${questionIndex}/10`;
+
+    setTimeout(()=>{
+      $("quiz").classList.add("hidden");
+      if(questionIndex>=10){
+        endMission(true);
+      }else{
+        // Tembakan berikutnya baru dilakukan saat pemain menekan TEMBAK lagi.
+        awaitingAnswer=false;
+      }
+    },900);
   }else{
-    score+=10;
+    // Salah tidak mengakhiri soal. Poin berkurang dan anak diberi kesempatan mencoba lagi.
+    score=Math.max(0,score-25);
+    $("score").textContent=score;
     button.classList.add("wrong");
-    $("feedback").textContent="Belum tepat. Pikachu tetap menembak, tetapi dayanya lebih lemah. +10";
+    button.disabled=true;
+    $("feedback").textContent="Belum tepat. -25 poin. Coba lagi sampai benar.";
     beep("wrong");
-  }
-
-  $("score").textContent=score;
-  questionIndex++;
-  $("qCount").textContent=`${questionIndex}/10`;
-
-  // Setelah soal dijawab BARU serangan listrik dijalankan.
-  setTimeout(()=>{
-    $("quiz").classList.add("hidden");
-    performPendingShot(correct);
-  },1200);
-}
-
-function performPendingShot(correct){
-  if(!running)return;
-
-  // Efek tembakan selalu terjadi karena tombol TEMBAK sudah ditekan.
-  sparkLine();
-
-  const target=window.pendingShotTarget;
-  window.pendingShotTarget=null;
-
-  // Jawaban benar menghasilkan damage penuh.
-  // Jawaban salah menghasilkan damage lebih kecil pada musuh.
-  if(target && scene.children.includes(target)){
-    const damage=correct?1:0.5;
-    target.userData.hp-=damage;
-    score+=correct?15:5;
-
-    if(target.userData.hp<=0){
-      scene.remove(target);
-      enemies=enemies.filter(e=>e!==target);
-      kills++;
-      score+=correct?30:15;
-    }
-  }
-
-  $("score").textContent=score;
-
-  // Sepuluh soal = sepuluh kesempatan menembak.
-  if(questionIndex>=10){
-    setTimeout(()=>endMission(true),500);
   }
 }
 function beginAttackWindow(){
@@ -226,8 +221,7 @@ function startGame(){
   questions=makeQuestions();lives=3;score=0;questionIndex=0;kills=0;wave=1;running=true;paused=false;awaitingAnswer=false;targetX=0;targetY=.85;invuln=0;
   $("missionTitle").textContent="Hutan Listrik";$("missionSub").textContent=`Kelas ${grade} • ${subjectName[subject]} • ${mode.toUpperCase()}`;resetUI();show("game");$("pause").classList.add("hidden");$("result").classList.add("hidden");
   init3D();if(animationFrame)cancelAnimationFrame(animationFrame);loop();
-  // Misi sekarang TIDAK otomatis memunculkan soal.
-  // Soal hanya muncul saat pemain menekan TEMBAK/mengetuk arena.
+  // Pikachu bebas menembak. Soal hanya muncul setelah tembakan mengenai musuh.
 }
 function home(){running=false;paused=false;$("pause").classList.add("hidden");$("result").classList.add("hidden");show("home")}
 $("btnStart").onclick=()=>{beep("menu");show("setup")};$("btnBackHome").onclick=()=>show("home");
